@@ -15,24 +15,56 @@
  */
 package com.example.amphibians.ui
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.amphibians.network.Amphibian
+import com.example.amphibians.network.AmphibianApiService
+import kotlinx.coroutines.launch
 
-enum class AmphibianApiStatus {LOADING, ERROR, DONE}
+enum class AmphibianApiStatus { LOADING, ERROR, DONE }
 
 class AmphibianViewModel : ViewModel() {
 
-    // TODO: Create properties to represent MutableLiveData and LiveData for the API status
+    // The internal MutableLiveData that stores the status of the most recent request
+    private val _status = MutableLiveData<AmphibianApiStatus>()
 
-    // TODO: Create properties to represent MutableLiveData and LiveData for a list of amphibian objects
+    // The external immutable LiveData for the request status
+    val status: LiveData<AmphibianApiStatus> = _status
 
-    // TODO: Create properties to represent MutableLiveData and LiveData for a single amphibian object.
-    //  This will be used to display the details of an amphibian when a list item is clicked
+    // Internally, we use a MutableLiveData, because we will be updating the List of MarsPhoto
+    // with new values
+    private val _amphibians = MutableLiveData<List<Amphibian>>()
 
-    // TODO: Create a function that gets a list of amphibians from the api service and sets the
-    //  status via a Coroutine
+    // The external LiveData interface to the property is immutable, so only this class can modify
+    val amphibians: LiveData<List<Amphibian>> = _amphibians
+
+    // Internally, we use a MutableLiveData, because we will be updating the List of MarsPhoto
+    // with new values
+    private val _amphibian = MutableLiveData<Amphibian>()
+
+    // The external LiveData interface to the property is immutable, so only this class can modify
+    val amphibian: LiveData<Amphibian> = _amphibian
+
+    init {
+        getAmphibians()
+    }
+
+    private fun getAmphibians() {
+        viewModelScope.launch {
+            _status.value = AmphibianApiStatus.LOADING
+            try {
+                _amphibians.value = AmphibianApiService.AmphibianApi.retrofitService.getAmphibians()
+                _status.value = AmphibianApiStatus.DONE
+            } catch (e: Exception) {
+                _status.value = AmphibianApiStatus.ERROR
+                _amphibians.value = listOf()
+            }
+        }
+    }
 
     fun onAmphibianClicked(amphibian: Amphibian) {
-        // TODO: Set the amphibian object
+        _amphibian.value = amphibian
     }
 }
